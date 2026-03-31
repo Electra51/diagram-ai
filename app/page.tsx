@@ -1,65 +1,265 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import PromptPanel from "@/components/PromptPanel";
+import {
+  DiagramMode,
+  DiagramState,
+  GenerateResponse,
+  HistoryItem,
+} from "@/lib/types";
+import { cn, generateId, sanitizeDiagram } from "@/lib/utils";
+import { AlertCircle, PanelLeft, X } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useCallback, useMemo, useRef, useState } from "react";
+
+// Dynamically import DiagramEditor to avoid SSR issues with React Flow
+const DiagramEditor = dynamic(() => import("@/components/DiagramEditor"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-8 h-8 border-2 border-[#1e1e2e] border-t-[#00d4ff] rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-[12px] text-[#3a3a50] font-mono">
+          Loading canvas...
+        </p>
+      </div>
+    </div>
+  ),
+});
+
+const EMPTY_DIAGRAM: DiagramState = { nodes: [], edges: [] };
+
+export default function HomePage() {
+  const [diagram, setDiagram] = useState<DiagramState>(EMPTY_DIAGRAM);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [explanation, setExplanation] = useState<string | undefined>();
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const diagramJson = useMemo(
+    () => JSON.stringify({ nodes: diagram.nodes, edges: diagram.edges }, null, 2),
+    [diagram],
+  );
+
+  const handleGenerate = useCallback(
+    async (
+      prompt: string,
+      mode: DiagramMode,
+      existingDiagram?: DiagramState,
+    ) => {
+      setIsGenerating(true);
+      setError(null);
+      setExplanation(undefined);
+
+      try {
+        const res = await fetch("/api/generate-diagram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, mode, existingDiagram }),
+        });
+
+        const data: GenerateResponse = await res.json();
+
+        if (!data.success || !data.diagram) {
+          setError(data.error || "Failed to generate diagram");
+          return;
+        }
+
+        setDiagram(data.diagram);
+        setExplanation(data.explanation);
+
+        // Add to history
+        setHistory((prev) => [
+          {
+            id: generateId(),
+            prompt,
+            mode,
+            timestamp: new Date(),
+            diagram: data.diagram!,
+          },
+          ...prev.slice(0, 19), // Keep last 20
+        ]);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Network error. Try again.",
+        );
+      } finally {
+        setIsGenerating(false);
+      }
+    },
+    [],
+  );
+
+  const handleRestoreHistory = useCallback((item: HistoryItem) => {
+    setDiagram(item.diagram);
+    setExplanation(undefined);
+    setError(null);
+  }, []);
+
+  const handleDiagramChange = useCallback((updated: DiagramState) => {
+    setDiagram(updated);
+  }, []);
+
+  const handleExport = useCallback(() => {
+    const blob = new Blob([diagramJson], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "diagram.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [diagramJson]);
+
+  const handleImportPick = useCallback(() => {
+    importInputRef.current?.click();
+  }, []);
+
+  const handleImportFile = useCallback(async () => {
+    const file = importInputRef.current?.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text) as unknown;
+      const sanitized = sanitizeDiagram(parsed);
+      if (!sanitized) {
+        setError("Import failed: invalid diagram JSON format.");
+        return;
+      }
+      setDiagram(sanitized);
+      setError(null);
+      setExplanation(undefined);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Import failed.");
+    } finally {
+      if (importInputRef.current) importInputRef.current.value = "";
+    }
+  }, []);
+
+  const handleShare = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(diagramJson);
+      setError(null);
+    } catch {
+      setError("Share failed: could not copy to clipboard.");
+    }
+  }, [diagramJson]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex h-screen w-screen overflow-hidden bg-[#f3f4f6]">
+      {/* Left panel */}
+      <div
+        className={cn(
+          "shrink-0 transition-all duration-300 ease-in-out overflow-hidden",
+          panelOpen ? "w-[320px]" : "w-0",
+        )}
+      >
+        <div className="w-[320px] h-full">
+          <PromptPanel
+            onGenerate={handleGenerate}
+            isGenerating={isGenerating}
+            history={history}
+            onRestoreHistory={handleRestoreHistory}
+            currentDiagram={diagram}
+            onChangeDiagram={setDiagram}
+            explanation={explanation}
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+      </div>
+
+      {/* Main canvas area */}
+      <div className="flex-1 flex flex-col min-w-0 relative">
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#e5e7eb] bg-white z-10">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setPanelOpen((p) => !p)}
+              className="
+                w-8 h-8 rounded-lg flex items-center justify-center
+                text-[#6b7280] hover:text-[#111827] hover:bg-[#f3f4f6]
+                transition-all duration-200
+              "
+              title="Toggle panel"
+            >
+              <PanelLeft size={16} />
+            </button>
+            <div className="h-4 w-px bg-[#e5e7eb]" />
+            <div className="flex items-center gap-2">
+              <span className="text-[12px] font-mono text-[#6b7280]">
+                {diagram.nodes.length} nodes
+              </span>
+              <span className="text-[12px] font-mono text-[#9ca3af]">·</span>
+              <span className="text-[12px] font-mono text-[#6b7280]">
+                {diagram.edges.length} edges
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={handleImportFile}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <button
+              onClick={handleExport}
+              className="px-4 py-2 rounded-full text-xs font-medium border border-[#e5e7eb] bg-white hover:bg-[#f9fafb] transition-colors"
+              title="Export diagram JSON"
+            >
+              Export
+            </button>
+            <button
+              onClick={handleImportPick}
+              className="px-4 py-2 rounded-full text-xs font-medium border border-[#e5e7eb] bg-white hover:bg-[#f9fafb] transition-colors"
+              title="Import diagram JSON"
+            >
+              Import
+            </button>
+            <button
+              onClick={handleShare}
+              className="px-4 py-2 rounded-full text-xs font-medium border border-[#e5e7eb] bg-white hover:bg-[#f9fafb] transition-colors"
+              title="Copy diagram JSON to clipboard"
+            >
+              Share
+            </button>
+            {isGenerating && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#111827] text-white animate-fade-in">
+                <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                <span className="text-[11px] font-mono">
+                  Generating...
+                </span>
+              </div>
+            )}
+          </div>
         </div>
-      </main>
+
+        {/* Error banner */}
+        {error && (
+          <div className="mx-4 mt-3 px-4 py-3 rounded-xl bg-[#3d1515] border border-[#5a1f1f] flex items-center gap-3 animate-slide-up z-10">
+            <AlertCircle size={14} className="text-[#f87171] shrink-0" />
+            <p className="text-[12px] text-[#f87171] font-mono flex-1">
+              {error}
+            </p>
+            <button
+              onClick={() => setError(null)}
+              className="text-[#f87171] hover:text-[#fca5a5] transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
+        {/* React Flow Canvas */}
+        <div className="flex-1 relative">
+          <DiagramEditor
+            diagram={diagram}
+            onDiagramChange={handleDiagramChange}
+          />
+        </div>
+      </div>
     </div>
   );
 }
