@@ -1,42 +1,28 @@
 // Left panel with prompt input
 "use client";
 
-import { DiagramMode, DiagramState, HistoryItem } from "@/lib/types";
+import { DiagramState, HistoryItem } from "@/lib/types";
 import { cn, formatTimestamp, sanitizeDiagram } from "@/lib/utils";
 import {
   AlertCircle,
-  Bot,
   ChevronRight,
   Clock,
   Loader2,
   RotateCcw,
   Send,
   Sparkles,
-  User,
 } from "lucide-react";
 import { KeyboardEvent, useCallback, useMemo, useRef, useState } from "react";
 
-const EXAMPLE_PROMPTS: Record<DiagramMode, string[]> = {
-  user: [
-    "Login → Verify credentials → Dashboard",
-    "User → API Gateway → Backend → Database",
-    "Order placed → Payment → Fulfillment → Delivery",
-    "React component lifecycle: mount, update, unmount",
-  ],
-  agent: [
-    "E-commerce checkout flow with error handling",
-    "Microservices architecture for a social media app",
-    "CI/CD pipeline for a Node.js application",
-    "JWT authentication system",
-  ],
-};
+const EXAMPLE_PROMPTS: string[] = [
+  "Login → Verify credentials → Dashboard",
+  "User → API Gateway → Backend → Database",
+  "Order placed → Payment → Fulfillment → Delivery",
+  "React component lifecycle: mount, update, unmount",
+];
 
 interface PromptPanelProps {
-  onGenerate: (
-    prompt: string,
-    mode: DiagramMode,
-    existingDiagram?: DiagramState,
-  ) => Promise<void>;
+  onGenerate: (prompt: string, existingDiagram?: DiagramState) => Promise<void>;
   isGenerating: boolean;
   history: HistoryItem[];
   onRestoreHistory: (item: HistoryItem) => void;
@@ -55,7 +41,6 @@ export default function PromptPanel({
   explanation,
 }: PromptPanelProps) {
   const [prompt, setPrompt] = useState("");
-  const [mode, setMode] = useState<DiagramMode>("user");
   const [showHistory, setShowHistory] = useState(false);
   const [activeTab, setActiveTab] = useState<"prompt" | "code">("prompt");
   const [codeText, setCodeText] = useState("");
@@ -64,7 +49,12 @@ export default function PromptPanel({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const diagramJson = useMemo(
-    () => JSON.stringify({ nodes: currentDiagram.nodes, edges: currentDiagram.edges }, null, 2),
+    () =>
+      JSON.stringify(
+        { nodes: currentDiagram.nodes, edges: currentDiagram.edges },
+        null,
+        2,
+      ),
     [currentDiagram],
   );
 
@@ -76,10 +66,9 @@ export default function PromptPanel({
     setPrompt("");
     await onGenerate(
       p,
-      mode,
       currentDiagram.nodes.length > 0 ? currentDiagram : undefined,
     );
-  }, [prompt, mode, isGenerating, onGenerate, currentDiagram]);
+  }, [prompt, isGenerating, onGenerate, currentDiagram]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -108,7 +97,9 @@ export default function PromptPanel({
 
     const sanitized = sanitizeDiagram(parsed);
     if (!sanitized) {
-      setCodeError("JSON is valid, but diagram shape is invalid (needs nodes[] and edges[]).");
+      setCodeError(
+        "JSON is valid, but diagram shape is invalid (needs nodes[] and edges[]).",
+      );
       return;
     }
     onChangeDiagram(sanitized);
@@ -126,9 +117,7 @@ export default function PromptPanel({
             DiagramAI
           </span>
         </div>
-        <p className="text-[11px] text-[#55556a] font-mono">
-          Powered by Groq
-        </p>
+        <p className="text-[11px] text-[#55556a] font-mono">Powered by Groq</p>
       </div>
 
       {/* Tabs */}
@@ -164,89 +153,52 @@ export default function PromptPanel({
         </div>
       </div>
 
-      {/* Mode Toggle */}
-      {activeTab === "prompt" && (
-        <div className="px-5 py-4 border-b border-[#1e1e2e]">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-[#55556a] mb-2.5">
-          Generation Mode
-        </p>
-        <div className="flex gap-2">
-          {(["user", "agent"] as DiagramMode[]).map((m) => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-semibold transition-all duration-200 border",
-                mode === m
-                  ? m === "agent"
-                    ? "bg-[#7c3aed20] border-[#7c3aed50] text-[#a78bfa]"
-                    : "bg-[#00d4ff15] border-[#00d4ff40] text-[#00d4ff]"
-                  : "bg-transparent border-[#1e1e2e] text-[#55556a] hover:border-[#2a2a40] hover:text-[#8888aa]",
-              )}
-            >
-              {m === "agent" ? <Bot size={13} /> : <User size={13} />}
-              {m === "user" ? "User" : "Agent"}
-            </button>
-          ))}
-        </div>
-        <p className="text-[10px] text-[#3a3a50] mt-2 leading-relaxed">
-          {mode === "agent"
-            ? "AI adds smart nodes, error flows & best practices automatically"
-            : "Generates exactly what you describe — precise and literal"}
-        </p>
-        </div>
-      )}
-
       {/* Prompt Input */}
       {activeTab === "prompt" && (
         <div className="px-5 py-4 border-b border-[#1e1e2e]">
-        <div className="relative">
-          <textarea
-            ref={textareaRef}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              mode === "agent"
-                ? "Describe a system or process..."
-                : "Describe nodes and connections..."
-            }
-            rows={4}
-            disabled={isGenerating}
-            className={cn(
-              "w-full resize-none rounded-xl px-4 py-3 pr-12 text-[13px]",
-              "bg-[#16161f] border border-[#1e1e2e] text-[#e2e2f0]",
-              "placeholder:text-[#3a3a50] font-mono leading-relaxed",
-              "focus:outline-none focus:border-[#00d4ff40] transition-colors duration-200",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Describe nodes and connections..."
+              rows={4}
+              disabled={isGenerating}
+              className={cn(
+                "w-full resize-none rounded-xl px-4 py-3 pr-12 text-[13px]",
+                "bg-[#16161f] border border-[#1e1e2e] text-[#e2e2f0]",
+                "placeholder:text-[#3a3a50] font-mono leading-relaxed",
+                "focus:outline-none focus:border-[#00d4ff40] transition-colors duration-200",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+              )}
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={!prompt.trim() || isGenerating}
+              className={cn(
+                "absolute bottom-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center",
+                "transition-all duration-200",
+                prompt.trim() && !isGenerating
+                  ? "bg-[#00d4ff] text-[#0a0a0f] hover:bg-[#00bbee] shadow-[0_0_12px_rgba(0,212,255,0.3)]"
+                  : "bg-[#1e1e2e] text-[#3a3a50] cursor-not-allowed",
+              )}
+            >
+              {isGenerating ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Send size={14} />
+              )}
+            </button>
+          </div>
+          <p className="text-[10px] text-[#2a2a40] mt-2 font-mono">
+            Ctrl/⌘ + Enter to generate
+            {currentDiagram.nodes.length > 0 && (
+              <span className="ml-2 text-[#7c3aed]">
+                · will update existing diagram
+              </span>
             )}
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={!prompt.trim() || isGenerating}
-            className={cn(
-              "absolute bottom-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center",
-              "transition-all duration-200",
-              prompt.trim() && !isGenerating
-                ? "bg-[#00d4ff] text-[#0a0a0f] hover:bg-[#00bbee] shadow-[0_0_12px_rgba(0,212,255,0.3)]"
-                : "bg-[#1e1e2e] text-[#3a3a50] cursor-not-allowed",
-            )}
-          >
-            {isGenerating ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Send size={14} />
-            )}
-          </button>
-        </div>
-        <p className="text-[10px] text-[#2a2a40] mt-2 font-mono">
-          Ctrl/⌘ + Enter to generate
-          {currentDiagram.nodes.length > 0 && (
-            <span className="ml-2 text-[#7c3aed]">
-              · will update existing diagram
-            </span>
-          )}
-        </p>
+          </p>
         </div>
       )}
 
@@ -282,7 +234,9 @@ export default function PromptPanel({
           />
           {codeError && (
             <div className="mt-2 px-3 py-2 rounded-lg bg-[#3d1515] border border-[#5a1f1f]">
-              <p className="text-[11px] text-[#f87171] font-mono">{codeError}</p>
+              <p className="text-[11px] text-[#f87171] font-mono">
+                {codeError}
+              </p>
             </div>
           )}
         </div>
@@ -325,29 +279,29 @@ export default function PromptPanel({
       {/* Example prompts */}
       {activeTab === "prompt" && (
         <div className="px-5 py-4 border-b border-[#1e1e2e]">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-[#55556a] mb-2.5">
-          Examples
-        </p>
-        <div className="flex flex-col gap-1.5">
-          {EXAMPLE_PROMPTS[mode].map((ex, i) => (
-            <button
-              key={i}
-              onClick={() => insertExample(ex)}
-              className="
+          <p className="text-[10px] font-mono uppercase tracking-widest text-[#55556a] mb-2.5">
+            Examples
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {EXAMPLE_PROMPTS.map((ex, i) => (
+              <button
+                key={i}
+                onClick={() => insertExample(ex)}
+                className="
                 text-left text-[11px] text-[#55556a] px-3 py-2 rounded-lg
                 bg-[#16161f] border border-transparent
                 hover:border-[#1e1e2e] hover:text-[#8888aa]
                 transition-all duration-150 flex items-center gap-2 group
               "
-            >
-              <ChevronRight
-                size={10}
-                className="flex-shrink-0 text-[#3a3a50] group-hover:text-[#00d4ff] transition-colors"
-              />
-              <span className="truncate">{ex}</span>
-            </button>
-          ))}
-        </div>
+              >
+                <ChevronRight
+                  size={10}
+                  className="shrink-0 text-[#3a3a50] group-hover:text-[#00d4ff] transition-colors"
+                />
+                <span className="truncate">{ex}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -387,7 +341,7 @@ export default function PromptPanel({
                       </p>
                       <RotateCcw
                         size={10}
-                        className="flex-shrink-0 text-[#3a3a50] group-hover:text-[#00d4ff] mt-0.5"
+                        className="shrink-0 text-[#3a3a50] group-hover:text-[#00d4ff] mt-0.5"
                       />
                     </div>
                     <div className="flex items-center gap-2 mt-1">
@@ -419,10 +373,7 @@ export default function PromptPanel({
       {/* Footer warning */}
       <div className="px-5 py-3 border-t border-[#1e1e2e]">
         <div className="flex items-start gap-2">
-          <AlertCircle
-            size={11}
-            className="text-[#3a3a50] mt-0.5 flex-shrink-0"
-          />
+          <AlertCircle size={11} className="text-[#3a3a50] mt-0.5 shrink-0" />
           <p className="text-[10px] text-[#3a3a50] leading-relaxed">
             Using Gemini free tier. May have rate limits. Backend integration
             pending.

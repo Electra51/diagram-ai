@@ -44,11 +44,8 @@ export default function HomePage() {
   );
 
   const handleGenerate = useCallback(
-    async (
-      prompt: string,
-      mode: DiagramMode,
-      existingDiagram?: DiagramState,
-    ) => {
+    async (prompt: string, existingDiagram?: DiagramState) => {
+      const mode: DiagramMode = "user";
       setIsGenerating(true);
       setError(null);
       setExplanation(undefined);
