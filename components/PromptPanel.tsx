@@ -65,6 +65,12 @@ export default function PromptPanel({
       : "bg-white border border-[#cbd5e1] text-[#0f172a] placeholder:text-[#64748b]",
     "focus:outline-none focus:border-[#00d4ff40] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
   );
+  const sectionCard = cn(
+    "rounded-2xl border shadow-sm",
+    isDark
+      ? "border-[#1e1e2e] bg-[#16161f]/90 shadow-[0_12px_30px_rgba(2,6,23,0.22)]"
+      : "border-[#e2e8f0] bg-[#f8fafc] shadow-[0_10px_24px_rgba(15,23,42,0.06)]",
+  );
 
   const diagramJson = useMemo(
     () =>
@@ -190,8 +196,8 @@ export default function PromptPanel({
       </div>
 
       {activeTab === "prompt" && (
-        <div className={cn("px-5 py-4 border-b", panelBorder)}>
-          <div className="relative">
+        <div className={cn("px-4 py-4 border-b", panelBorder)}>
+          <div className={cn("relative p-3 rounded-2xl border", sectionCard)}>
             <textarea
               ref={textareaRef}
               value={prompt}
@@ -206,7 +212,7 @@ export default function PromptPanel({
               onClick={handleSubmit}
               disabled={!prompt.trim() || isGenerating}
               className={cn(
-                "absolute bottom-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200",
+                "absolute bottom-5 right-5 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200",
                 prompt.trim() && !isGenerating
                   ? isDark
                     ? "bg-[#00d4ff] text-[#0a0a0f] hover:bg-[#00bbee] shadow-[0_0_12px_rgba(0,212,255,0.3)]"
@@ -235,192 +241,191 @@ export default function PromptPanel({
       )}
 
       {activeTab === "code" && (
-        <div className={cn("px-5 py-4 border-b", panelBorder)}>
-          <div className="flex items-center justify-between mb-2">
-            <p className={cn("text-[10px] font-mono uppercase tracking-widest", panelMuted)}>
-              Diagram JSON
-            </p>
-            <button
-              onClick={handleApplyCode}
-              className={cn(
-                "px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors",
-                isDark
-                  ? "bg-[#00d4ff] text-[#0a0a0f] hover:bg-[#00bbee]"
-                  : "bg-[#2563eb] text-white hover:bg-[#1d4ed8]",
-              )}
-              title="Apply JSON to canvas"
-            >
-              Apply
-            </button>
-          </div>
-          <textarea
-            value={codeValue}
-            onChange={(e) => {
-              setCodeDirty(true);
-              setCodeText(e.target.value);
-            }}
-            spellCheck={false}
-            rows={10}
-            className={cn(
-              "w-full resize-none rounded-xl px-4 py-3 text-[12px] font-mono leading-relaxed",
-              isDark
-                ? "bg-[#0f0f16] border border-[#1e1e2e] text-[#e2e2f0] placeholder:text-[#3a3a50]"
-                : "bg-[#f8fafc] border border-[#cbd5e1] text-[#0f172a] placeholder:text-[#64748b]",
-              "focus:outline-none focus:border-[#00d4ff40] transition-colors duration-200",
-            )}
-          />
-          {codeError && (
-            <div className="mt-2 px-3 py-2 rounded-lg bg-[#3d1515] border border-[#5a1f1f]">
-              <p className="text-[11px] text-[#f87171] font-mono">{codeError}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {isGenerating && (
-        <div className="mx-5 my-3 px-4 py-3 rounded-xl bg-[#00d4ff08] border border-[#00d4ff20] animate-fade-in">
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="w-1.5 h-1.5 rounded-full bg-[#00d4ff]"
-                  style={{
-                    animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-                  }}
-                />
-              ))}
-            </div>
-            <span className="text-[11px] text-[#00d4ff] font-mono">Generating...</span>
-          </div>
-        </div>
-      )}
-
-      {explanation && !isGenerating && (
-        <div
-          className={cn(
-            "mx-5 my-3 px-4 py-3 rounded-xl border animate-slide-up",
-            isDark ? "bg-[#16161f] border-[#1e1e2e]" : "bg-[#f8fafc] border-[#e2e8f0]",
-          )}
-        >
-          <p className={cn("text-[10px] uppercase tracking-widest font-mono mb-1.5", panelMuted)}>
-            AI Explanation
-          </p>
-          <p className={cn("text-[12px] leading-relaxed", panelSecondary)}>
-            {explanation}
-          </p>
-        </div>
-      )}
-
-      {activeTab === "prompt" && (
-        <div className={cn("px-5 py-4 border-b", panelBorder)}>
-          <p className={cn("text-[10px] font-mono uppercase tracking-widest mb-2.5", panelMuted)}>
-            Examples
-          </p>
-          <div className="flex flex-col gap-1.5">
-            {EXAMPLE_PROMPTS.map((ex, i) => (
+        <div className={cn("px-4 py-4 border-b", panelBorder)}>
+          <div className={cn("p-3 rounded-2xl border", sectionCard)}>
+            <div className="flex items-center justify-between mb-2">
+              <p className={cn("text-[10px] font-mono uppercase tracking-widest", panelMuted)}>
+                Diagram JSON
+              </p>
               <button
-                key={i}
-                onClick={() => insertExample(ex)}
+                onClick={handleApplyCode}
                 className={cn(
-                  "text-left text-[11px] px-3 py-2 rounded-lg transition-all duration-150 flex items-center gap-2 group",
+                  "px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors",
                   isDark
-                    ? "text-[#55556a] bg-[#16161f] border border-transparent hover:border-[#1e1e2e] hover:text-[#8888aa]"
-                    : "text-[#64748b] bg-[#f8fafc] border border-transparent hover:border-[#cbd5e1] hover:text-[#2563eb]",
+                    ? "bg-[#00d4ff] text-[#0a0a0f] hover:bg-[#00bbee]"
+                    : "bg-[#2563eb] text-white hover:bg-[#1d4ed8]",
                 )}
+                title="Apply JSON to canvas"
               >
-                <ChevronRight
-                  size={10}
-                  className={cn(
-                    "shrink-0 transition-colors",
-                    isDark ? "text-[#3a3a50] group-hover:text-[#00d4ff]" : "text-[#94a3b8] group-hover:text-[#2563eb]",
-                  )}
-                />
-                <span className="truncate">{ex}</span>
+                Apply
               </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto">
-        {history.length > 0 && (
-          <div className="px-5 py-4">
-            <button
-              onClick={() => setShowHistory(!showHistory)}
+            </div>
+            <textarea
+              value={codeValue}
+              onChange={(e) => {
+                setCodeDirty(true);
+                setCodeText(e.target.value);
+              }}
+              spellCheck={false}
+              rows={10}
               className={cn(
-                "flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest mb-3 transition-colors w-full",
-                panelMuted,
+                "w-full resize-none rounded-xl px-4 py-3 text-[12px] font-mono leading-relaxed",
+                isDark
+                  ? "bg-[#0f0f16] border border-[#1e1e2e] text-[#e2e2f0] placeholder:text-[#3a3a50]"
+                  : "bg-[#f8fafc] border border-[#cbd5e1] text-[#0f172a] placeholder:text-[#64748b]",
+                "focus:outline-none focus:border-[#00d4ff40] transition-colors duration-200",
               )}
-            >
-              <Clock size={10} />
-              History ({history.length})
-              <ChevronRight
-                size={10}
-                className={cn("ml-auto transition-transform", showHistory && "rotate-90")}
-              />
-            </button>
-            {showHistory && (
-              <div className="flex flex-col gap-2 animate-fade-in">
-                {history.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => onRestoreHistory(item)}
-                    className={cn(
-                      "text-left px-3 py-2.5 rounded-lg transition-all group",
-                      isDark
-                        ? "bg-[#16161f] border border-[#1e1e2e] hover:border-[#2a2a40]"
-                        : "bg-[#f8fafc] border border-[#e2e8f0] hover:border-[#cbd5e1]",
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p
-                        className={cn(
-                          "text-[11px] truncate transition-colors",
-                          isDark ? "text-[#8888aa] group-hover:text-[#e2e2f0]" : "text-[#475569] group-hover:text-[#0f172a]",
-                        )}
-                      >
-                        {item.prompt}
-                      </p>
-                      <RotateCcw
-                        size={10}
-                        className={cn(
-                          "shrink-0 mt-0.5 transition-colors",
-                          isDark ? "text-[#3a3a50] group-hover:text-[#00d4ff]" : "text-[#94a3b8] group-hover:text-[#2563eb]",
-                        )}
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={cn("text-[9px] font-mono", panelMuted)}>
-                        {formatTimestamp(item.timestamp)}
-                      </span>
-                      <span
-                        className={cn(
-                          "text-[9px] font-mono px-1.5 py-0.5 rounded",
-                          item.mode === "agent"
-                            ? isDark
-                              ? "bg-[#7c3aed15] text-[#7c3aed]"
-                              : "bg-[#ede9fe] text-[#7c3aed]"
-                            : isDark
-                              ? "bg-[#00d4ff10] text-[#00d4ff]"
-                              : "bg-[#dbeafe] text-[#2563eb]",
-                        )}
-                      >
-                        {item.mode}
-                      </span>
-                      <span className={cn("text-[9px] font-mono", panelMuted)}>
-                        {item.diagram.nodes.length} nodes
-                      </span>
-                    </div>
-                  </button>
-                ))}
+            />
+            {codeError && (
+              <div className="mt-2 px-3 py-2 rounded-lg bg-[#3d1515] border border-[#5a1f1f]">
+                <p className="text-[11px] text-[#f87171] font-mono">{codeError}</p>
               </div>
             )}
           </div>
-        )}
+        </div>
+      )}
+
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="px-4 py-3 space-y-3">
+          {isGenerating && (
+            <div className={cn("px-4 py-3 rounded-2xl border animate-fade-in", sectionCard)}>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="w-1.5 h-1.5 rounded-full bg-[#00d4ff]"
+                      style={{
+                        animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+                      }}
+                    />
+                  ))}
+                </div>
+                <span className="text-[11px] text-[#00d4ff] font-mono">Generating...</span>
+              </div>
+            </div>
+          )}
+
+          {explanation && !isGenerating && (
+            <div className={cn("px-4 py-3 rounded-2xl border animate-slide-up", sectionCard)}>
+              <p className={cn("text-[10px] uppercase tracking-widest font-mono mb-1.5", panelMuted)}>
+                AI Explanation
+              </p>
+              <p className={cn("text-[12px] leading-relaxed", panelSecondary)}>
+                {explanation}
+              </p>
+            </div>
+          )}
+
+          {activeTab === "prompt" && (
+            <div className={cn("px-4 py-3 rounded-2xl border", sectionCard)}>
+              <p className={cn("text-[10px] font-mono uppercase tracking-widest mb-2.5", panelMuted)}>
+                Examples
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {EXAMPLE_PROMPTS.map((ex, i) => (
+                  <button
+                    key={i}
+                    onClick={() => insertExample(ex)}
+                    className={cn(
+                      "text-left text-[11px] px-3 py-2 rounded-lg transition-all duration-150 flex items-center gap-2 group",
+                      isDark
+                        ? "text-[#55556a] bg-[#16161f] border border-transparent hover:border-[#1e1e2e] hover:text-[#8888aa]"
+                        : "text-[#64748b] bg-[#f8fafc] border border-transparent hover:border-[#cbd5e1] hover:text-[#2563eb]",
+                    )}
+                  >
+                    <ChevronRight
+                      size={10}
+                      className={cn(
+                        "shrink-0 transition-colors",
+                        isDark ? "text-[#3a3a50] group-hover:text-[#00d4ff]" : "text-[#94a3b8] group-hover:text-[#2563eb]",
+                      )}
+                    />
+                    <span className="truncate">{ex}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {history.length > 0 && (
+            <div className={cn("px-4 py-3 rounded-2xl border", sectionCard)}>
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className={cn(
+                  "flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest mb-3 transition-colors w-full",
+                  panelMuted,
+                )}
+              >
+                <Clock size={10} />
+                History ({history.length})
+                <ChevronRight
+                  size={10}
+                  className={cn("ml-auto transition-transform", showHistory && "rotate-90")}
+                />
+              </button>
+              {showHistory && (
+                <div className="flex flex-col gap-2 animate-fade-in">
+                  {history.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => onRestoreHistory(item)}
+                      className={cn(
+                        "text-left px-3 py-2.5 rounded-lg transition-all group",
+                        isDark
+                          ? "bg-[#16161f] border border-[#1e1e2e] hover:border-[#2a2a40]"
+                          : "bg-white border border-[#e2e8f0] hover:border-[#cbd5e1]",
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p
+                          className={cn(
+                            "text-[11px] truncate transition-colors",
+                            isDark ? "text-[#8888aa] group-hover:text-[#e2e2f0]" : "text-[#475569] group-hover:text-[#0f172a]",
+                          )}
+                        >
+                          {item.prompt}
+                        </p>
+                        <RotateCcw
+                          size={10}
+                          className={cn(
+                            "shrink-0 mt-0.5 transition-colors",
+                            isDark ? "text-[#3a3a50] group-hover:text-[#00d4ff]" : "text-[#94a3b8] group-hover:text-[#2563eb]",
+                          )}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={cn("text-[9px] font-mono", panelMuted)}>
+                          {formatTimestamp(item.timestamp)}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-[9px] font-mono px-1.5 py-0.5 rounded",
+                            item.mode === "agent"
+                              ? isDark
+                                ? "bg-[#7c3aed15] text-[#7c3aed]"
+                                : "bg-[#ede9fe] text-[#7c3aed]"
+                              : isDark
+                                ? "bg-[#00d4ff10] text-[#00d4ff]"
+                                : "bg-[#dbeafe] text-[#2563eb]",
+                          )}
+                        >
+                          {item.mode}
+                        </span>
+                        <span className={cn("text-[9px] font-mono", panelMuted)}>
+                          {item.diagram.nodes.length} nodes
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className={cn("px-5 py-3 border-t", panelBorder)}>
+      <div className={cn("px-5 py-3 border-t bg-transparent", panelBorder)}>
         <div className="flex items-start gap-2">
           <AlertCircle size={11} className={cn("mt-0.5 shrink-0", panelMuted)} />
           <p className={cn("text-[10px] leading-relaxed", panelMuted)}>

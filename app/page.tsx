@@ -102,31 +102,37 @@ export default function HomePage() {
   );
 
   // Demo diagrams for quick recruiter-friendly preview
-  const demoLoginFlow: DiagramState = {
-    nodes: [
-      { id: "login", type: "custom", position: { x: 100, y: 80 }, data: { label: "Login", description: "User enters credentials", color: "#06b6d4" } },
-      { id: "verify", type: "custom", position: { x: 340, y: 80 }, data: { label: "Verify", description: "Auth service checks credentials", color: "#6366f1" } },
-      { id: "dashboard", type: "custom", position: { x: 580, y: 80 }, data: { label: "Dashboard", description: "User landing page", color: "#10b981" } },
-    ],
-    edges: [
-      { id: "e1", source: "login", target: "verify", type: "smoothstep", animated: true },
-      { id: "e2", source: "verify", target: "dashboard", type: "smoothstep" },
-    ],
-  };
+  const demoLoginFlow = useMemo<DiagramState>(
+    () => ({
+      nodes: [
+        { id: "login", type: "custom", position: { x: 100, y: 80 }, data: { label: "Login", description: "User enters credentials", color: "#06b6d4" } },
+        { id: "verify", type: "custom", position: { x: 340, y: 80 }, data: { label: "Verify", description: "Auth service checks credentials", color: "#6366f1" } },
+        { id: "dashboard", type: "custom", position: { x: 580, y: 80 }, data: { label: "Dashboard", description: "User landing page", color: "#10b981" } },
+      ],
+      edges: [
+        { id: "e1", source: "login", target: "verify", type: "smoothstep", animated: true },
+        { id: "e2", source: "verify", target: "dashboard", type: "smoothstep" },
+      ],
+    }),
+    [],
+  );
 
-  const demoEcommerceFlow: DiagramState = {
-    nodes: [
-      { id: "browse", type: "custom", position: { x: 80, y: 60 }, data: { label: "Browse", description: "User browses products", color: "#00d4ff" } },
-      { id: "cart", type: "custom", position: { x: 300, y: 60 }, data: { label: "Cart", description: "Products added to cart", color: "#f59e0b" } },
-      { id: "checkout", type: "custom", position: { x: 520, y: 60 }, data: { label: "Checkout", description: "Payment & address", color: "#ef4444" } },
-      { id: "fulfill", type: "custom", position: { x: 740, y: 60 }, data: { label: "Fulfillment", description: "Order processing", color: "#8b5cf6" } },
-    ],
-    edges: [
-      { id: "e3", source: "browse", target: "cart", type: "smoothstep" },
-      { id: "e4", source: "cart", target: "checkout", type: "smoothstep" },
-      { id: "e5", source: "checkout", target: "fulfill", type: "smoothstep" },
-    ],
-  };
+  const demoEcommerceFlow = useMemo<DiagramState>(
+    () => ({
+      nodes: [
+        { id: "browse", type: "custom", position: { x: 80, y: 60 }, data: { label: "Browse", description: "User browses products", color: "#00d4ff" } },
+        { id: "cart", type: "custom", position: { x: 300, y: 60 }, data: { label: "Cart", description: "Products added to cart", color: "#f59e0b" } },
+        { id: "checkout", type: "custom", position: { x: 520, y: 60 }, data: { label: "Checkout", description: "Payment & address", color: "#ef4444" } },
+        { id: "fulfill", type: "custom", position: { x: 740, y: 60 }, data: { label: "Fulfillment", description: "Order processing", color: "#8b5cf6" } },
+      ],
+      edges: [
+        { id: "e3", source: "browse", target: "cart", type: "smoothstep" },
+        { id: "e4", source: "cart", target: "checkout", type: "smoothstep" },
+        { id: "e5", source: "checkout", target: "fulfill", type: "smoothstep" },
+      ],
+    }),
+    [],
+  );
 
   const handleLoadDemo = useCallback((which: "login" | "ecom") => {
     if (which === "login") {
@@ -228,8 +234,8 @@ export default function HomePage() {
 
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       nodes.forEach((n) => {
-        const x = (n.position as any).x ?? 0;
-        const y = (n.position as any).y ?? 0;
+        const x = n.position.x ?? 0;
+        const y = n.position.y ?? 0;
         minX = Math.min(minX, x);
         minY = Math.min(minY, y);
         maxX = Math.max(maxX, x + NODE_W);
@@ -256,10 +262,10 @@ export default function HomePage() {
         const src = nodes.find((n) => n.id === e.source);
         const dst = nodes.find((n) => n.id === e.target);
         if (!src || !dst) return;
-        const sx = (src.position as any).x - minX + padding + NODE_W / 2;
-        const sy = (src.position as any).y - minY + padding + NODE_H / 2;
-        const tx = (dst.position as any).x - minX + padding + NODE_W / 2;
-        const ty = (dst.position as any).y - minY + padding + NODE_H / 2;
+        const sx = src.position.x - minX + padding + NODE_W / 2;
+        const sy = src.position.y - minY + padding + NODE_H / 2;
+        const tx = dst.position.x - minX + padding + NODE_W / 2;
+        const ty = dst.position.y - minY + padding + NODE_H / 2;
         ctx.beginPath();
         ctx.moveTo(sx, sy);
         ctx.lineTo(tx, ty);
@@ -271,14 +277,14 @@ export default function HomePage() {
       ctx.textBaseline = "middle";
       ctx.font = "14px Inter, system-ui, sans-serif";
       nodes.forEach((n) => {
-        const x = (n.position as any).x - minX + padding;
-        const y = (n.position as any).y - minY + padding;
-        const color = (n.data as any)?.color || (isDark ? "#334155" : "#e6eefc");
+        const x = n.position.x - minX + padding;
+        const y = n.position.y - minY + padding;
+        const color = n.data.color || (isDark ? "#334155" : "#e6eefc");
         ctx.fillStyle = color;
         roundRect(ctx, x, y, NODE_W, NODE_H, 8, true, false);
         // label
         ctx.fillStyle = isDark ? "#e2e8f0" : "#0f172a";
-        const label = (n.data as any)?.label || "Node";
+        const label = n.data.label || "Node";
         ctx.fillText(label, x + NODE_W / 2, y + NODE_H / 2);
       });
 
