@@ -2,6 +2,10 @@
 
 DiagramAI is an AI-powered diagram generator built with Next.js and React Flow. Users can describe a workflow in plain English, and the app generates a visual diagram with a recruiter-friendly explanation and export options.
 
+## Screenshot
+
+![DiagramAI UI](public/home.png)
+
 ## Why this project stands out
 
 - AI-assisted workflow generation from natural language prompts
