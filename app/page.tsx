@@ -101,6 +101,43 @@ export default function HomePage() {
     [],
   );
 
+  // Demo diagrams for quick recruiter-friendly preview
+  const demoLoginFlow: DiagramState = {
+    nodes: [
+      { id: "login", type: "custom", position: { x: 100, y: 80 }, data: { label: "Login", description: "User enters credentials", color: "#06b6d4" } },
+      { id: "verify", type: "custom", position: { x: 340, y: 80 }, data: { label: "Verify", description: "Auth service checks credentials", color: "#6366f1" } },
+      { id: "dashboard", type: "custom", position: { x: 580, y: 80 }, data: { label: "Dashboard", description: "User landing page", color: "#10b981" } },
+    ],
+    edges: [
+      { id: "e1", source: "login", target: "verify", type: "smoothstep", animated: true },
+      { id: "e2", source: "verify", target: "dashboard", type: "smoothstep" },
+    ],
+  };
+
+  const demoEcommerceFlow: DiagramState = {
+    nodes: [
+      { id: "browse", type: "custom", position: { x: 80, y: 60 }, data: { label: "Browse", description: "User browses products", color: "#00d4ff" } },
+      { id: "cart", type: "custom", position: { x: 300, y: 60 }, data: { label: "Cart", description: "Products added to cart", color: "#f59e0b" } },
+      { id: "checkout", type: "custom", position: { x: 520, y: 60 }, data: { label: "Checkout", description: "Payment & address", color: "#ef4444" } },
+      { id: "fulfill", type: "custom", position: { x: 740, y: 60 }, data: { label: "Fulfillment", description: "Order processing", color: "#8b5cf6" } },
+    ],
+    edges: [
+      { id: "e3", source: "browse", target: "cart", type: "smoothstep" },
+      { id: "e4", source: "cart", target: "checkout", type: "smoothstep" },
+      { id: "e5", source: "checkout", target: "fulfill", type: "smoothstep" },
+    ],
+  };
+
+  const handleLoadDemo = useCallback((which: "login" | "ecom") => {
+    if (which === "login") {
+      setDiagram(demoLoginFlow);
+      setExplanation("Login flow: user submits credentials → auth verifies → dashboard.");
+    } else {
+      setDiagram(demoEcommerceFlow);
+      setExplanation("E-commerce flow: browse → cart → checkout → fulfillment.");
+    }
+  }, [demoEcommerceFlow, demoLoginFlow]);
+
   const handleRestoreHistory = useCallback((item: HistoryItem) => {
     setDiagram(item.diagram);
     setExplanation(undefined);
@@ -170,6 +207,147 @@ export default function HomePage() {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
     setSummaryCopied(false);
   }, []);
+
+  const [exportOpen, setExportOpen] = useState(false);
+
+  const menuItemClass = (isDark: boolean) =>
+    cn(
+      "w-full text-left px-3 py-2 text-sm transition-colors",
+      isDark ? "text-[#cbd5e1] hover:bg-[#0f172a]" : "text-[#0f172a] hover:bg-[#f8fafc]",
+    );
+
+  const createDiagramImage = useCallback(async (): Promise<string | null> => {
+    try {
+      const nodes = diagram.nodes || [];
+      const edges = diagram.edges || [];
+      if (nodes.length === 0) return null;
+
+      const NODE_W = 160;
+      const NODE_H = 48;
+      const padding = 40;
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      nodes.forEach((n) => {
+        const x = (n.position as any).x ?? 0;
+        const y = (n.position as any).y ?? 0;
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x + NODE_W);
+        maxY = Math.max(maxY, y + NODE_H);
+      });
+
+      const width = Math.ceil(maxX - minX + padding * 2);
+      const height = Math.ceil(maxY - minY + padding * 2);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(300, width);
+      canvas.height = Math.max(200, height);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+
+      // background
+      ctx.fillStyle = isDark ? "#020617" : "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // draw edges
+      ctx.strokeStyle = isDark ? "#94a3b8" : "#374151";
+      ctx.lineWidth = 2;
+      edges.forEach((e) => {
+        const src = nodes.find((n) => n.id === e.source);
+        const dst = nodes.find((n) => n.id === e.target);
+        if (!src || !dst) return;
+        const sx = (src.position as any).x - minX + padding + NODE_W / 2;
+        const sy = (src.position as any).y - minY + padding + NODE_H / 2;
+        const tx = (dst.position as any).x - minX + padding + NODE_W / 2;
+        const ty = (dst.position as any).y - minY + padding + NODE_H / 2;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+      });
+
+      // draw nodes
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "14px Inter, system-ui, sans-serif";
+      nodes.forEach((n) => {
+        const x = (n.position as any).x - minX + padding;
+        const y = (n.position as any).y - minY + padding;
+        const color = (n.data as any)?.color || (isDark ? "#334155" : "#e6eefc");
+        ctx.fillStyle = color;
+        roundRect(ctx, x, y, NODE_W, NODE_H, 8, true, false);
+        // label
+        ctx.fillStyle = isDark ? "#e2e8f0" : "#0f172a";
+        const label = (n.data as any)?.label || "Node";
+        ctx.fillText(label, x + NODE_W / 2, y + NODE_H / 2);
+      });
+
+      return canvas.toDataURL("image/png");
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  }, [diagram, isDark]);
+
+  const exportAsImage = useCallback(async (type: 'png' | 'jpeg') => {
+    const dataUrl = await createDiagramImage();
+    if (!dataUrl) {
+      setError('Nothing to export');
+      return;
+    }
+    const a = document.createElement('a');
+    if (type === 'png') {
+      a.href = dataUrl;
+      a.download = 'diagram.png';
+    } else {
+      // convert to jpeg
+      const img = new Image();
+      img.src = dataUrl;
+      await img.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.fillStyle = isDark ? '#020617' : '#ffffff';
+      ctx.fillRect(0,0,canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      a.href = canvas.toDataURL('image/jpeg', 0.92);
+      a.download = 'diagram.jpg';
+    }
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }, [createDiagramImage, isDark]);
+
+  const exportAsPDF = useCallback(async () => {
+    const dataUrl = await createDiagramImage();
+    if (!dataUrl) {
+      setError('Nothing to export');
+      return;
+    }
+    const w = window.open('');
+    if (!w) {
+      setError('Cannot open window for PDF export');
+      return;
+    }
+    w.document.write(`<img src="${dataUrl}" style="max-width:100%"/>`);
+    // let user print to PDF
+    setTimeout(() => w.print(), 300);
+  }, [createDiagramImage]);
+
+  // helper: rounded rect
+  function roundRect(ctx: CanvasRenderingContext2D, x:number, y:number, w:number, h:number, r:number, fill:boolean, stroke:boolean) {
+    if (r === undefined) r = 5;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
 
   return (
     <div
@@ -255,40 +433,92 @@ export default function HomePage() {
               {isDark ? <SunMedium size={14} /> : <MoonStar size={14} />}
             </button>
             <button
-              onClick={handleExport}
+              onClick={() => handleLoadDemo("login")}
               className={cn(
-                "px-4 py-2 rounded-full text-xs font-medium border transition-colors",
+                "px-3 py-1 rounded-md text-xs font-medium border transition-colors",
                 isDark
-                  ? "border-[#1e293b] bg-[#111827] hover:bg-[#172033] text-[#f8fafc]"
-                  : "border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-[#0f172a]",
+                  ? "border-[#1e293b] bg-[#0b1220] text-[#cbd5e1] hover:bg-[#111827]"
+                  : "border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]",
               )}
-              title="Export diagram JSON"
+              title="Load Login Flow demo"
             >
-              Export
+              Login Demo
             </button>
+            <button
+              onClick={() => handleLoadDemo("ecom")}
+              className={cn(
+                "px-3 py-1 rounded-md text-xs font-medium border transition-colors",
+                isDark
+                  ? "border-[#1e293b] bg-[#0b1220] text-[#cbd5e1] hover:bg-[#111827]"
+                  : "border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]",
+              )}
+              title="Load E-commerce Flow demo"
+            >
+              E‑com Demo
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setExportOpen((o) => !o)}
+                className={cn(
+                  "p-2 rounded-full flex items-center justify-center border transition-colors",
+                  isDark
+                    ? "border-[#1e293b] bg-[#0b1220] text-[#cbd5e1] hover:bg-[#111827]"
+                    : "border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]",
+                )}
+                title="Export"
+                aria-label="Export"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 3v12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M8 7l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M21 21H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              {exportOpen && (
+                <div className={cn(
+                  "absolute right-0 mt-2 w-40 rounded-lg shadow-lg z-50",
+                  isDark ? "bg-[#0b1220] border border-[#1e293b]" : "bg-white border border-[#e2e8f0]",
+                )}>
+                  <button onClick={() => { handleExport(); setExportOpen(false); }} className={menuItemClass(isDark)}>Export JSON</button>
+                  <button onClick={() => { exportAsImage('png'); setExportOpen(false); }} className={menuItemClass(isDark)}>Export PNG</button>
+                  <button onClick={() => { exportAsImage('jpeg'); setExportOpen(false); }} className={menuItemClass(isDark)}>Export JPG</button>
+                  <button onClick={() => { exportAsPDF(); setExportOpen(false); }} className={menuItemClass(isDark)}>Export PDF</button>
+                </div>
+              )}
+            </div>
             <button
               onClick={handleImportPick}
               className={cn(
-                "px-4 py-2 rounded-full text-xs font-medium border transition-colors",
+                "p-2 rounded-full flex items-center justify-center border transition-colors",
                 isDark
-                  ? "border-[#1e293b] bg-[#111827] hover:bg-[#172033] text-[#f8fafc]"
-                  : "border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-[#0f172a]",
+                  ? "border-[#1e293b] bg-[#0b1220] text-[#cbd5e1] hover:bg-[#111827]"
+                  : "border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]",
               )}
-              title="Import diagram JSON"
+              title="Import"
+              aria-label="Import"
             >
-              Import
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 10l5-5 5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 5v14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
             <button
               onClick={handleShare}
               className={cn(
-                "px-4 py-2 rounded-full text-xs font-medium border transition-colors",
+                "p-2 rounded-full flex items-center justify-center border transition-colors",
                 isDark
-                  ? "border-[#1e293b] bg-[#111827] hover:bg-[#172033] text-[#f8fafc]"
-                  : "border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-[#0f172a]",
+                  ? "border-[#1e293b] bg-[#0b1220] text-[#cbd5e1] hover:bg-[#111827]"
+                  : "border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]",
               )}
-              title="Copy diagram JSON to clipboard"
+              title="Share"
+              aria-label="Share"
             >
-              Share
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M16 6l-4-4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 2v13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
             {explanation && (
               <button
