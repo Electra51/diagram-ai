@@ -35,13 +35,15 @@ import { nodeTypes } from "./nodes/CustomNode";
 interface DiagramEditorProps {
   diagram: DiagramState;
   onDiagramChange: (diagram: DiagramState) => void;
+  theme: "light" | "dark";
 }
 
-function DiagramEditorInner({ diagram, onDiagramChange }: DiagramEditorProps) {
+function DiagramEditorInner({ diagram, onDiagramChange, theme }: DiagramEditorProps) {
   const [nodes, setNodes] = useNodesState<DiagramNode["data"]>(diagram.nodes);
   const [edges, setEdges] = useEdgesState(diagram.edges);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const applyingExternalRef = useRef(false);
+  const isDark = theme === "dark";
 
   // Sync local state when diagram prop changes (AI generation / history restore / code apply)
   useEffect(() => {
@@ -165,10 +167,14 @@ function DiagramEditorInner({ diagram, onDiagramChange }: DiagramEditorProps) {
   }, [setNodes, setEdges]);
 
   return (
-    <div ref={reactFlowWrapper} className="w-full h-full bg-white">
+    <div
+      ref={reactFlowWrapper}
+      className={`w-full h-full transition-colors duration-300 ${isDark ? "bg-[#060816]" : "bg-[#f8fafc]"}`}
+    >
       <ReactFlow
         nodes={nodesForRender}
         edges={edges}
+        style={{ background: isDark ? "#020617" : "#f8fafc" }}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
@@ -190,7 +196,7 @@ function DiagramEditorInner({ diagram, onDiagramChange }: DiagramEditorProps) {
           variant={BackgroundVariant.Dots}
           gap={24}
           size={1}
-          color="#e5e7eb"
+          color={isDark ? "#1e293b" : "#cbd5e1"}
         />
         <Controls
           position="bottom-right"
@@ -201,13 +207,15 @@ function DiagramEditorInner({ diagram, onDiagramChange }: DiagramEditorProps) {
           position="bottom-left"
           className="bottom-6! left-6!"
           nodeColor={(n) => n.data?.color || "#6b7280"}
-          maskColor="rgba(255, 255, 255, 0.65)"
+          maskColor={isDark ? "rgba(2, 6, 23, 0.75)" : "rgba(248, 250, 252, 0.85)"}
           style={{ width: 140, height: 90 }}
         />
 
         {/* Right-side shape palette (like screenshot) */}
         <Panel position="top-right">
-          <div className="mt-24 mr-3 rounded-xl border border-[#e5e7eb] bg-white shadow-sm p-2 w-[132px]">
+          <div
+            className={`mt-24 mr-3 rounded-xl border p-2 w-[132px] shadow-sm ${isDark ? "border-[#1e293b] bg-[#0f172a]" : "border-[#e5e7eb] bg-white"}`}
+          >
             <div className="grid grid-cols-4 gap-1.5">
               {[
                 { t: "rectangle", l: "Process", c: "#00d4ff", icon: <LayoutGrid size={14} /> },
@@ -228,7 +236,7 @@ function DiagramEditorInner({ diagram, onDiagramChange }: DiagramEditorProps) {
                   key={s.t}
                   onClick={() => addTypedNode(s.t as DiagramNodeData["type"], s.l, s.c)}
                   title={s.l}
-                  className="w-7 h-7 rounded-md border border-[#e5e7eb] bg-white hover:bg-[#f9fafb] hover:border-[#d1d5db] flex items-center justify-center text-[#4b5563]"
+                  className={`w-7 h-7 rounded-md border flex items-center justify-center ${isDark ? "border-[#1e293b] bg-[#111827] hover:bg-[#172033] text-[#cbd5e1]" : "border-[#e5e7eb] bg-white hover:bg-[#f9fafb] hover:border-[#d1d5db] text-[#4b5563]"}`}
                 >
                   {s.icon}
                 </button>
@@ -237,7 +245,7 @@ function DiagramEditorInner({ diagram, onDiagramChange }: DiagramEditorProps) {
             <div className="mt-2 flex items-center justify-between gap-2">
               <button
                 onClick={addNode}
-                className="flex-1 px-2 py-1.5 rounded-lg text-[11px] font-medium border border-[#e5e7eb] hover:bg-[#f9fafb]"
+                className={`flex-1 px-2 py-1.5 rounded-lg text-[11px] font-medium border ${isDark ? "border-[#1e293b] bg-[#111827] hover:bg-[#172033] text-[#f8fafc]" : "border-[#e5e7eb] bg-white hover:bg-[#f9fafb] text-[#0f172a]"}`}
                 title="Add generic node"
               >
                 <span className="inline-flex items-center gap-1">
@@ -246,7 +254,7 @@ function DiagramEditorInner({ diagram, onDiagramChange }: DiagramEditorProps) {
               </button>
               <button
                 onClick={clearDiagram}
-                className="px-2 py-1.5 rounded-lg text-[11px] font-medium border border-[#e5e7eb] hover:bg-[#fef2f2] hover:border-[#fecaca] text-[#ef4444]"
+                className={`px-2 py-1.5 rounded-lg text-[11px] font-medium border ${isDark ? "border-[#1e293b] bg-[#111827] hover:bg-[#172033] text-[#ef4444]" : "border-[#e5e7eb] bg-white hover:bg-[#fef2f2] hover:border-[#fecaca] text-[#ef4444]"}`}
                 title="Clear diagram"
               >
                 <Trash2 size={13} />
@@ -260,10 +268,10 @@ function DiagramEditorInner({ diagram, onDiagramChange }: DiagramEditorProps) {
           <Panel position="top-center">
             <div className="mt-32 text-center animate-fade-in pointer-events-none">
               <div className="text-6xl mb-4 opacity-20">⬡</div>
-              <p className="text-[#6b7280] text-sm font-medium">
+              <p className={`text-sm font-medium ${isDark ? "text-[#cbd5e1]" : "text-[#475569]"}`}>
                 Generate a diagram with the prompt panel
               </p>
-              <p className="text-[#9ca3af] text-xs mt-1">
+              <p className={`text-xs mt-1 ${isDark ? "text-[#94a3b8]" : "text-[#64748b]"}`}>
                 or click &ldquo;Add Node&rdquo; to start manually
               </p>
             </div>
@@ -273,16 +281,16 @@ function DiagramEditorInner({ diagram, onDiagramChange }: DiagramEditorProps) {
         {/* Keyboard hint */}
         {nodes.length > 0 && (
           <Panel position="top-center">
-            <div className="flex items-center gap-3 text-[10px] text-[#6b7280] font-mono">
+            <div className={`flex items-center gap-3 text-[10px] font-mono ${isDark ? "text-[#cbd5e1]" : "text-[#475569]"}`}>
               <span className="flex items-center gap-1">
-                <kbd className="px-1 py-0.5 bg-white border border-[#e5e7eb] rounded text-[9px]">
+                <kbd className={`px-1 py-0.5 border rounded text-[9px] ${isDark ? "bg-[#111827] border-[#1e293b]" : "bg-white border-[#e5e7eb]"}`}>
                   Double-click
                 </kbd>
                 edit label
               </span>
               <span>·</span>
               <span className="flex items-center gap-1">
-                <kbd className="px-1 py-0.5 bg-white border border-[#e5e7eb] rounded text-[9px]">
+                <kbd className={`px-1 py-0.5 border rounded text-[9px] ${isDark ? "bg-[#111827] border-[#1e293b]" : "bg-white border-[#e5e7eb]"}`}>
                   Del
                 </kbd>
                 remove

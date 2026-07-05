@@ -29,6 +29,7 @@ interface PromptPanelProps {
   currentDiagram: DiagramState;
   onChangeDiagram: (diagram: DiagramState) => void;
   explanation?: string;
+  theme: "light" | "dark";
 }
 
 export default function PromptPanel({
@@ -39,6 +40,7 @@ export default function PromptPanel({
   currentDiagram,
   onChangeDiagram,
   explanation,
+  theme,
 }: PromptPanelProps) {
   const [prompt, setPrompt] = useState("");
   const [showHistory, setShowHistory] = useState(false);
@@ -47,6 +49,22 @@ export default function PromptPanel({
   const [codeDirty, setCodeDirty] = useState(false);
   const [codeError, setCodeError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const isDark = theme === "dark";
+  const panelSurface = isDark
+    ? "bg-[#111118] border-[#1e1e2e] text-[#e2e2f0]"
+    : "bg-white border-[#e2e8f0] text-[#0f172a]";
+  const panelBorder = isDark ? "border-[#1e1e2e]" : "border-[#e2e8f0]";
+  const panelMuted = isDark ? "text-[#55556a]" : "text-[#64748b]";
+  const panelSecondary = isDark ? "text-[#8888aa]" : "text-[#475569]";
+  const panelAccent = isDark ? "text-[#00d4ff]" : "text-[#2563eb]";
+  const inputClasses = cn(
+    "w-full resize-none rounded-xl px-4 py-3 pr-12 text-[13px] font-mono leading-relaxed",
+    isDark
+      ? "bg-[#16161f] border border-[#1e1e2e] text-[#e2e2f0] placeholder:text-[#3a3a50]"
+      : "bg-white border border-[#cbd5e1] text-[#0f172a] placeholder:text-[#64748b]",
+    "focus:outline-none focus:border-[#00d4ff40] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
+  );
 
   const diagramJson = useMemo(
     () =>
@@ -106,30 +124,44 @@ export default function PromptPanel({
   }, [codeText, onChangeDiagram]);
 
   return (
-    <div className="flex flex-col h-full bg-[#111118] border-r border-[#1e1e2e]">
-      {/* Header */}
-      <div className="px-5 pt-5 pb-4 border-b border-[#1e1e2e]">
+    <div className={cn("flex flex-col h-full border-r", panelSurface, panelBorder)}>
+      <div className={cn("px-5 pt-5 pb-4 border-b", panelBorder)}>
         <div className="flex items-center gap-2.5 mb-1">
-          <div className="w-7 h-7 rounded-lg bg-[#00d4ff15] border border-[#00d4ff30] flex items-center justify-center">
-            <Sparkles size={14} className="text-[#00d4ff]" />
+          <div
+            className={cn(
+              "w-7 h-7 rounded-lg border flex items-center justify-center",
+              isDark
+                ? "bg-[#00d4ff15] border-[#00d4ff30]"
+                : "bg-[#eff6ff] border-[#bfdbfe]",
+            )}
+          >
+            <Sparkles size={14} className={panelAccent} />
           </div>
-          <span className="font-display text-sm font-bold tracking-wider text-[#e2e2f0] uppercase">
+          <span
+            className={cn(
+              "font-display text-sm font-bold tracking-wider uppercase",
+              isDark ? "text-[#e2e2f0]" : "text-[#0f172a]",
+            )}
+          >
             DiagramAI
           </span>
         </div>
-        <p className="text-[11px] text-[#55556a] font-mono">Powered by Groq</p>
+        <p className={cn("text-[11px] font-mono", panelMuted)}>Powered by Groq</p>
       </div>
 
-      {/* Tabs */}
-      <div className="px-5 py-3 border-b border-[#1e1e2e]">
+      <div className={cn("px-5 py-3 border-b", panelBorder)}>
         <div className="flex gap-2">
           <button
             onClick={() => setActiveTab("prompt")}
             className={cn(
               "flex-1 py-2 rounded-lg text-xs font-semibold border transition-all duration-200",
               activeTab === "prompt"
-                ? "bg-[#16161f] border-[#2a2a40] text-[#e2e2f0]"
-                : "bg-transparent border-[#1e1e2e] text-[#55556a] hover:border-[#2a2a40] hover:text-[#8888aa]",
+                ? isDark
+                  ? "bg-[#16161f] border-[#2a2a40] text-[#e2e2f0]"
+                  : "bg-[#eff6ff] border-[#93c5fd] text-[#0f172a]"
+                : isDark
+                  ? "bg-transparent border-[#1e1e2e] text-[#55556a] hover:border-[#2a2a40] hover:text-[#8888aa]"
+                  : "bg-transparent border-[#e2e8f0] text-[#64748b] hover:border-[#93c5fd] hover:text-[#2563eb]",
             )}
           >
             Prompt
@@ -144,8 +176,12 @@ export default function PromptPanel({
             className={cn(
               "flex-1 py-2 rounded-lg text-xs font-semibold border transition-all duration-200",
               activeTab === "code"
-                ? "bg-[#16161f] border-[#2a2a40] text-[#e2e2f0]"
-                : "bg-transparent border-[#1e1e2e] text-[#55556a] hover:border-[#2a2a40] hover:text-[#8888aa]",
+                ? isDark
+                  ? "bg-[#16161f] border-[#2a2a40] text-[#e2e2f0]"
+                  : "bg-[#eff6ff] border-[#93c5fd] text-[#0f172a]"
+                : isDark
+                  ? "bg-transparent border-[#1e1e2e] text-[#55556a] hover:border-[#2a2a40] hover:text-[#8888aa]"
+                  : "bg-transparent border-[#e2e8f0] text-[#64748b] hover:border-[#93c5fd] hover:text-[#2563eb]",
             )}
           >
             Code
@@ -153,9 +189,8 @@ export default function PromptPanel({
         </div>
       </div>
 
-      {/* Prompt Input */}
       {activeTab === "prompt" && (
-        <div className="px-5 py-4 border-b border-[#1e1e2e]">
+        <div className={cn("px-5 py-4 border-b", panelBorder)}>
           <div className="relative">
             <textarea
               ref={textareaRef}
@@ -165,23 +200,20 @@ export default function PromptPanel({
               placeholder="Describe nodes and connections..."
               rows={4}
               disabled={isGenerating}
-              className={cn(
-                "w-full resize-none rounded-xl px-4 py-3 pr-12 text-[13px]",
-                "bg-[#16161f] border border-[#1e1e2e] text-[#e2e2f0]",
-                "placeholder:text-[#3a3a50] font-mono leading-relaxed",
-                "focus:outline-none focus:border-[#00d4ff40] transition-colors duration-200",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-              )}
+              className={inputClasses}
             />
             <button
               onClick={handleSubmit}
               disabled={!prompt.trim() || isGenerating}
               className={cn(
-                "absolute bottom-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center",
-                "transition-all duration-200",
+                "absolute bottom-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200",
                 prompt.trim() && !isGenerating
-                  ? "bg-[#00d4ff] text-[#0a0a0f] hover:bg-[#00bbee] shadow-[0_0_12px_rgba(0,212,255,0.3)]"
-                  : "bg-[#1e1e2e] text-[#3a3a50] cursor-not-allowed",
+                  ? isDark
+                    ? "bg-[#00d4ff] text-[#0a0a0f] hover:bg-[#00bbee] shadow-[0_0_12px_rgba(0,212,255,0.3)]"
+                    : "bg-[#2563eb] text-white hover:bg-[#1d4ed8] shadow-[0_0_12px_rgba(37,99,235,0.2)]"
+                  : isDark
+                    ? "bg-[#1e1e2e] text-[#3a3a50] cursor-not-allowed"
+                    : "bg-[#e2e8f0] text-[#94a3b8] cursor-not-allowed",
               )}
             >
               {isGenerating ? (
@@ -191,10 +223,10 @@ export default function PromptPanel({
               )}
             </button>
           </div>
-          <p className="text-[10px] text-[#2a2a40] mt-2 font-mono">
+          <p className={cn("text-[10px] mt-2 font-mono", isDark ? "text-[#2a2a40]" : "text-[#94a3b8]")}>
             Ctrl/⌘ + Enter to generate
             {currentDiagram.nodes.length > 0 && (
-              <span className="ml-2 text-[#7c3aed]">
+              <span className={cn("ml-2", isDark ? "text-[#7c3aed]" : "text-[#7c3aed]")}>
                 · will update existing diagram
               </span>
             )}
@@ -202,16 +234,20 @@ export default function PromptPanel({
         </div>
       )}
 
-      {/* Code editor */}
       {activeTab === "code" && (
-        <div className="px-5 py-4 border-b border-[#1e1e2e]">
+        <div className={cn("px-5 py-4 border-b", panelBorder)}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-[#55556a]">
+            <p className={cn("text-[10px] font-mono uppercase tracking-widest", panelMuted)}>
               Diagram JSON
             </p>
             <button
               onClick={handleApplyCode}
-              className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-[#00d4ff] text-[#0a0a0f] hover:bg-[#00bbee] transition-colors"
+              className={cn(
+                "px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors",
+                isDark
+                  ? "bg-[#00d4ff] text-[#0a0a0f] hover:bg-[#00bbee]"
+                  : "bg-[#2563eb] text-white hover:bg-[#1d4ed8]",
+              )}
               title="Apply JSON to canvas"
             >
               Apply
@@ -226,23 +262,21 @@ export default function PromptPanel({
             spellCheck={false}
             rows={10}
             className={cn(
-              "w-full resize-none rounded-xl px-4 py-3 text-[12px]",
-              "bg-[#0f0f16] border border-[#1e1e2e] text-[#e2e2f0]",
-              "placeholder:text-[#3a3a50] font-mono leading-relaxed",
+              "w-full resize-none rounded-xl px-4 py-3 text-[12px] font-mono leading-relaxed",
+              isDark
+                ? "bg-[#0f0f16] border border-[#1e1e2e] text-[#e2e2f0] placeholder:text-[#3a3a50]"
+                : "bg-[#f8fafc] border border-[#cbd5e1] text-[#0f172a] placeholder:text-[#64748b]",
               "focus:outline-none focus:border-[#00d4ff40] transition-colors duration-200",
             )}
           />
           {codeError && (
             <div className="mt-2 px-3 py-2 rounded-lg bg-[#3d1515] border border-[#5a1f1f]">
-              <p className="text-[11px] text-[#f87171] font-mono">
-                {codeError}
-              </p>
+              <p className="text-[11px] text-[#f87171] font-mono">{codeError}</p>
             </div>
           )}
         </div>
       )}
 
-      {/* Generating indicator */}
       {isGenerating && (
         <div className="mx-5 my-3 px-4 py-3 rounded-xl bg-[#00d4ff08] border border-[#00d4ff20] animate-fade-in">
           <div className="flex items-center gap-2">
@@ -257,29 +291,30 @@ export default function PromptPanel({
                 />
               ))}
             </div>
-            <span className="text-[11px] text-[#00d4ff] font-mono">
-              Generating...
-            </span>
+            <span className="text-[11px] text-[#00d4ff] font-mono">Generating...</span>
           </div>
         </div>
       )}
 
-      {/* AI Explanation */}
       {explanation && !isGenerating && (
-        <div className="mx-5 my-3 px-4 py-3 rounded-xl bg-[#16161f] border border-[#1e1e2e] animate-slide-up">
-          <p className="text-[10px] uppercase tracking-widest text-[#55556a] font-mono mb-1.5">
+        <div
+          className={cn(
+            "mx-5 my-3 px-4 py-3 rounded-xl border animate-slide-up",
+            isDark ? "bg-[#16161f] border-[#1e1e2e]" : "bg-[#f8fafc] border-[#e2e8f0]",
+          )}
+        >
+          <p className={cn("text-[10px] uppercase tracking-widest font-mono mb-1.5", panelMuted)}>
             AI Explanation
           </p>
-          <p className="text-[12px] text-[#8888aa] leading-relaxed">
+          <p className={cn("text-[12px] leading-relaxed", panelSecondary)}>
             {explanation}
           </p>
         </div>
       )}
 
-      {/* Example prompts */}
       {activeTab === "prompt" && (
-        <div className="px-5 py-4 border-b border-[#1e1e2e]">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-[#55556a] mb-2.5">
+        <div className={cn("px-5 py-4 border-b", panelBorder)}>
+          <p className={cn("text-[10px] font-mono uppercase tracking-widest mb-2.5", panelMuted)}>
             Examples
           </p>
           <div className="flex flex-col gap-1.5">
@@ -287,16 +322,19 @@ export default function PromptPanel({
               <button
                 key={i}
                 onClick={() => insertExample(ex)}
-                className="
-                text-left text-[11px] text-[#55556a] px-3 py-2 rounded-lg
-                bg-[#16161f] border border-transparent
-                hover:border-[#1e1e2e] hover:text-[#8888aa]
-                transition-all duration-150 flex items-center gap-2 group
-              "
+                className={cn(
+                  "text-left text-[11px] px-3 py-2 rounded-lg transition-all duration-150 flex items-center gap-2 group",
+                  isDark
+                    ? "text-[#55556a] bg-[#16161f] border border-transparent hover:border-[#1e1e2e] hover:text-[#8888aa]"
+                    : "text-[#64748b] bg-[#f8fafc] border border-transparent hover:border-[#cbd5e1] hover:text-[#2563eb]",
+                )}
               >
                 <ChevronRight
                   size={10}
-                  className="shrink-0 text-[#3a3a50] group-hover:text-[#00d4ff] transition-colors"
+                  className={cn(
+                    "shrink-0 transition-colors",
+                    isDark ? "text-[#3a3a50] group-hover:text-[#00d4ff]" : "text-[#94a3b8] group-hover:text-[#2563eb]",
+                  )}
                 />
                 <span className="truncate">{ex}</span>
               </button>
@@ -305,22 +343,21 @@ export default function PromptPanel({
         </div>
       )}
 
-      {/* History */}
       <div className="flex-1 overflow-y-auto">
         {history.length > 0 && (
           <div className="px-5 py-4">
             <button
               onClick={() => setShowHistory(!showHistory)}
-              className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-[#55556a] mb-3 hover:text-[#8888aa] transition-colors w-full"
+              className={cn(
+                "flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest mb-3 transition-colors w-full",
+                panelMuted,
+              )}
             >
               <Clock size={10} />
               History ({history.length})
               <ChevronRight
                 size={10}
-                className={cn(
-                  "ml-auto transition-transform",
-                  showHistory && "rotate-90",
-                )}
+                className={cn("ml-auto transition-transform", showHistory && "rotate-90")}
               />
             </button>
             {showHistory && (
@@ -329,36 +366,49 @@ export default function PromptPanel({
                   <button
                     key={item.id}
                     onClick={() => onRestoreHistory(item)}
-                    className="
-                      text-left px-3 py-2.5 rounded-lg
-                      bg-[#16161f] border border-[#1e1e2e]
-                      hover:border-[#2a2a40] transition-all group
-                    "
+                    className={cn(
+                      "text-left px-3 py-2.5 rounded-lg transition-all group",
+                      isDark
+                        ? "bg-[#16161f] border border-[#1e1e2e] hover:border-[#2a2a40]"
+                        : "bg-[#f8fafc] border border-[#e2e8f0] hover:border-[#cbd5e1]",
+                    )}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-[11px] text-[#8888aa] truncate group-hover:text-[#e2e2f0] transition-colors">
+                      <p
+                        className={cn(
+                          "text-[11px] truncate transition-colors",
+                          isDark ? "text-[#8888aa] group-hover:text-[#e2e2f0]" : "text-[#475569] group-hover:text-[#0f172a]",
+                        )}
+                      >
                         {item.prompt}
                       </p>
                       <RotateCcw
                         size={10}
-                        className="shrink-0 text-[#3a3a50] group-hover:text-[#00d4ff] mt-0.5"
+                        className={cn(
+                          "shrink-0 mt-0.5 transition-colors",
+                          isDark ? "text-[#3a3a50] group-hover:text-[#00d4ff]" : "text-[#94a3b8] group-hover:text-[#2563eb]",
+                        )}
                       />
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[9px] font-mono text-[#3a3a50]">
+                      <span className={cn("text-[9px] font-mono", panelMuted)}>
                         {formatTimestamp(item.timestamp)}
                       </span>
                       <span
                         className={cn(
                           "text-[9px] font-mono px-1.5 py-0.5 rounded",
                           item.mode === "agent"
-                            ? "bg-[#7c3aed15] text-[#7c3aed]"
-                            : "bg-[#00d4ff10] text-[#00d4ff]",
+                            ? isDark
+                              ? "bg-[#7c3aed15] text-[#7c3aed]"
+                              : "bg-[#ede9fe] text-[#7c3aed]"
+                            : isDark
+                              ? "bg-[#00d4ff10] text-[#00d4ff]"
+                              : "bg-[#dbeafe] text-[#2563eb]",
                         )}
                       >
                         {item.mode}
                       </span>
-                      <span className="text-[9px] font-mono text-[#2a2a40]">
+                      <span className={cn("text-[9px] font-mono", panelMuted)}>
                         {item.diagram.nodes.length} nodes
                       </span>
                     </div>
@@ -370,13 +420,11 @@ export default function PromptPanel({
         )}
       </div>
 
-      {/* Footer warning */}
-      <div className="px-5 py-3 border-t border-[#1e1e2e]">
+      <div className={cn("px-5 py-3 border-t", panelBorder)}>
         <div className="flex items-start gap-2">
-          <AlertCircle size={11} className="text-[#3a3a50] mt-0.5 shrink-0" />
-          <p className="text-[10px] text-[#3a3a50] leading-relaxed">
-            Using Gemini free tier. May have rate limits. Backend integration
-            pending.
+          <AlertCircle size={11} className={cn("mt-0.5 shrink-0", panelMuted)} />
+          <p className={cn("text-[10px] leading-relaxed", panelMuted)}>
+            Using Gemini free tier. May have rate limits. Backend integration pending.
           </p>
         </div>
       </div>

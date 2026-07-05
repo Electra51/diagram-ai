@@ -8,9 +8,11 @@ import {
   HistoryItem,
 } from "@/lib/types";
 import { cn, generateId, sanitizeDiagram } from "@/lib/utils";
-import { AlertCircle, PanelLeft, X } from "lucide-react";
+import { AlertCircle, MoonStar, PanelLeft, SunMedium, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCallback, useMemo, useRef, useState } from "react";
+
+type ThemeMode = "light" | "dark";
 
 // Dynamically import DiagramEditor to avoid SSR issues with React Flow
 const DiagramEditor = dynamic(() => import("@/components/DiagramEditor"), {
@@ -19,9 +21,7 @@ const DiagramEditor = dynamic(() => import("@/components/DiagramEditor"), {
     <div className="w-full h-full flex items-center justify-center">
       <div className="text-center">
         <div className="w-8 h-8 border-2 border-[#1e1e2e] border-t-[#00d4ff] rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-[12px] text-[#3a3a50] font-mono">
-          Loading canvas...
-        </p>
+        <p className="text-[12px] text-[#3a3a50] font-mono">Loading canvas...</p>
       </div>
     </div>
   ),
@@ -36,12 +36,25 @@ export default function HomePage() {
   const [explanation, setExplanation] = useState<string | undefined>();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [panelOpen, setPanelOpen] = useState(true);
+  const [theme, setTheme] = useState<ThemeMode>("dark");
+  const [summaryCopied, setSummaryCopied] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
+
+  const isDark = theme === "dark";
 
   const diagramJson = useMemo(
     () => JSON.stringify({ nodes: diagram.nodes, edges: diagram.edges }, null, 2),
     [diagram],
   );
+
+  const summaryText = useMemo(() => {
+    const nodeCount = diagram.nodes.length;
+    const edgeCount = diagram.edges.length;
+    const base =
+      explanation?.trim() ||
+      `This workflow contains ${nodeCount} nodes and ${edgeCount} connections.`;
+    return `Recruiter-ready summary: ${base}`;
+  }, [diagram.nodes.length, diagram.edges.length, explanation]);
 
   const handleGenerate = useCallback(
     async (prompt: string, existingDiagram?: DiagramState) => {
@@ -67,7 +80,6 @@ export default function HomePage() {
         setDiagram(data.diagram);
         setExplanation(data.explanation);
 
-        // Add to history
         setHistory((prev) => [
           {
             id: generateId(),
@@ -76,7 +88,7 @@ export default function HomePage() {
             timestamp: new Date(),
             diagram: data.diagram!,
           },
-          ...prev.slice(0, 19), // Keep last 20
+          ...prev.slice(0, 19),
         ]);
       } catch (err) {
         setError(
@@ -143,9 +155,29 @@ export default function HomePage() {
     }
   }, [diagramJson]);
 
+  const handleCopySummary = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(summaryText);
+      setSummaryCopied(true);
+      setError(null);
+      window.setTimeout(() => setSummaryCopied(false), 1600);
+    } catch {
+      setError("Summary copy failed.");
+    }
+  }, [summaryText]);
+
+  const handleToggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    setSummaryCopied(false);
+  }, []);
+
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#f3f4f6]">
-      {/* Left panel */}
+    <div
+      className={cn(
+        "flex h-screen w-screen overflow-hidden transition-colors duration-300",
+        isDark ? "bg-[#060816] text-[#f8fafc]" : "bg-[#f8fafc] text-[#0f172a]",
+      )}
+    >
       <div
         className={cn(
           "shrink-0 transition-all duration-300 ease-in-out overflow-hidden",
@@ -161,33 +193,42 @@ export default function HomePage() {
             currentDiagram={diagram}
             onChangeDiagram={setDiagram}
             explanation={explanation}
+            theme={theme}
           />
         </div>
       </div>
 
-      {/* Main canvas area */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#e5e7eb] bg-white z-10">
+        <div
+          className={cn(
+            "flex items-center justify-between px-4 py-3 border-b z-10 backdrop-blur",
+            isDark
+              ? "border-[#1e293b] bg-[#0f172a]/95 text-[#f8fafc]"
+              : "border-[#e2e8f0] bg-white/90 text-[#0f172a]",
+          )}
+        >
           <div className="flex items-center gap-3">
             <button
               onClick={() => setPanelOpen((p) => !p)}
-              className="
-                w-8 h-8 rounded-lg flex items-center justify-center
-                text-[#6b7280] hover:text-[#111827] hover:bg-[#f3f4f6]
-                transition-all duration-200
-              "
+              className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200",
+                isDark
+                  ? "text-[#94a3b8] hover:text-[#f8fafc] hover:bg-[#111827]"
+                  : "text-[#64748b] hover:text-[#0f172a] hover:bg-[#f1f5f9]",
+              )}
               title="Toggle panel"
             >
               <PanelLeft size={16} />
             </button>
-            <div className="h-4 w-px bg-[#e5e7eb]" />
+            <div className={cn("h-4 w-px", isDark ? "bg-[#1e293b]" : "bg-[#e2e8f0]")} />
             <div className="flex items-center gap-2">
-              <span className="text-[12px] font-mono text-[#6b7280]">
+              <span className={cn("text-[12px] font-mono", isDark ? "text-[#94a3b8]" : "text-[#475569]")}>
                 {diagram.nodes.length} nodes
               </span>
-              <span className="text-[12px] font-mono text-[#9ca3af]">·</span>
-              <span className="text-[12px] font-mono text-[#6b7280]">
+              <span className={cn("text-[12px] font-mono", isDark ? "text-[#64748b]" : "text-[#94a3b8]")}>
+                ·
+              </span>
+              <span className={cn("text-[12px] font-mono", isDark ? "text-[#94a3b8]" : "text-[#475569]")}>
                 {diagram.edges.length} edges
               </span>
             </div>
@@ -202,44 +243,128 @@ export default function HomePage() {
               onChange={handleImportFile}
             />
             <button
+              onClick={handleToggleTheme}
+              className={cn(
+                "w-9 h-9 rounded-full border flex items-center justify-center transition-colors",
+                isDark
+                  ? "border-[#1e293b] bg-[#111827] hover:bg-[#172033] text-[#f8fafc]"
+                  : "border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-[#0f172a]",
+              )}
+              title="Toggle theme"
+            >
+              {isDark ? <SunMedium size={14} /> : <MoonStar size={14} />}
+            </button>
+            <button
               onClick={handleExport}
-              className="px-4 py-2 rounded-full text-xs font-medium border border-[#e5e7eb] bg-white hover:bg-[#f9fafb] transition-colors"
+              className={cn(
+                "px-4 py-2 rounded-full text-xs font-medium border transition-colors",
+                isDark
+                  ? "border-[#1e293b] bg-[#111827] hover:bg-[#172033] text-[#f8fafc]"
+                  : "border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-[#0f172a]",
+              )}
               title="Export diagram JSON"
             >
               Export
             </button>
             <button
               onClick={handleImportPick}
-              className="px-4 py-2 rounded-full text-xs font-medium border border-[#e5e7eb] bg-white hover:bg-[#f9fafb] transition-colors"
+              className={cn(
+                "px-4 py-2 rounded-full text-xs font-medium border transition-colors",
+                isDark
+                  ? "border-[#1e293b] bg-[#111827] hover:bg-[#172033] text-[#f8fafc]"
+                  : "border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-[#0f172a]",
+              )}
               title="Import diagram JSON"
             >
               Import
             </button>
             <button
               onClick={handleShare}
-              className="px-4 py-2 rounded-full text-xs font-medium border border-[#e5e7eb] bg-white hover:bg-[#f9fafb] transition-colors"
+              className={cn(
+                "px-4 py-2 rounded-full text-xs font-medium border transition-colors",
+                isDark
+                  ? "border-[#1e293b] bg-[#111827] hover:bg-[#172033] text-[#f8fafc]"
+                  : "border-[#cbd5e1] bg-white hover:bg-[#f8fafc] text-[#0f172a]",
+              )}
               title="Copy diagram JSON to clipboard"
             >
               Share
             </button>
+            {explanation && (
+              <button
+                onClick={handleCopySummary}
+                className={cn(
+                  "px-4 py-2 rounded-full text-xs font-medium border transition-colors",
+                  isDark
+                    ? "border-[#1e293b] bg-[#0f172a] hover:bg-[#172033] text-[#38bdf8]"
+                    : "border-[#bfdbfe] bg-[#eff6ff] hover:bg-[#dbeafe] text-[#2563eb]",
+                )}
+                title="Copy recruiter-ready summary"
+              >
+                {summaryCopied ? "Copied" : "Summary"}
+              </button>
+            )}
             {isGenerating && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#111827] text-white animate-fade-in">
+              <div
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg animate-fade-in",
+                  isDark ? "bg-[#111827] text-white" : "bg-[#0f172a] text-white",
+                )}
+              >
                 <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                <span className="text-[11px] font-mono">
-                  Generating...
-                </span>
+                <span className="text-[11px] font-mono">Generating...</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Error banner */}
+        {explanation && (
+          <div
+            className={cn(
+              "mx-4 mt-3 rounded-2xl border p-4 shadow-sm",
+              isDark
+                ? "border-[#1e293b] bg-[#0f172a]/90"
+                : "border-[#e2e8f0] bg-white/95",
+            )}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p
+                  className={cn(
+                    "text-[10px] uppercase tracking-[0.3em] font-semibold",
+                    isDark ? "text-[#38bdf8]" : "text-[#2563eb]",
+                  )}
+                >
+                  Recruiter-ready summary
+                </p>
+                <p
+                  className={cn(
+                    "text-sm leading-6 mt-2",
+                    isDark ? "text-[#cbd5e1]" : "text-[#334155]",
+                  )}
+                >
+                  {explanation}
+                </p>
+              </div>
+              <button
+                onClick={handleCopySummary}
+                className={cn(
+                  "shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors",
+                  isDark
+                    ? "border-[#1e293b] bg-[#111827] text-[#f8fafc] hover:bg-[#172033]"
+                    : "border-[#cbd5e1] bg-white text-[#0f172a] hover:bg-[#f8fafc]",
+                )}
+              >
+                {summaryCopied ? "Copied" : "Copy"}
+              </button>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="mx-4 mt-3 px-4 py-3 rounded-xl bg-[#3d1515] border border-[#5a1f1f] flex items-center gap-3 animate-slide-up z-10">
             <AlertCircle size={14} className="text-[#f87171] shrink-0" />
-            <p className="text-[12px] text-[#f87171] font-mono flex-1">
-              {error}
-            </p>
+            <p className="text-[12px] text-[#f87171] font-mono flex-1">{error}</p>
             <button
               onClick={() => setError(null)}
               className="text-[#f87171] hover:text-[#fca5a5] transition-colors"
@@ -249,12 +374,8 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* React Flow Canvas */}
         <div className="flex-1 relative">
-          <DiagramEditor
-            diagram={diagram}
-            onDiagramChange={handleDiagramChange}
-          />
+          <DiagramEditor diagram={diagram} onDiagramChange={handleDiagramChange} theme={theme} />
         </div>
       </div>
     </div>
