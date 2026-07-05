@@ -214,7 +214,7 @@ function DiagramEditorInner({ diagram, onDiagramChange, theme }: DiagramEditorPr
         {/* Right-side shape palette (like screenshot) */}
         <Panel position="top-right">
           <div
-            className={`mt-24 mr-3 rounded-xl border p-2 w-[132px] shadow-sm ${isDark ? "border-[#1e293b] bg-[#0f172a]" : "border-[#e5e7eb] bg-white"}`}
+            className={`mt-24 mr-3 rounded-xl border p-2 w-33 shadow-sm ${isDark ? "border-[#1e293b] bg-[#0f172a]" : "border-[#e5e7eb] bg-white"}`}
           >
             <div className="grid grid-cols-4 gap-1.5">
               {[
